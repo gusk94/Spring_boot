@@ -95,7 +95,7 @@ public class TestController {
 	
 	@RequestMapping("/")
 	public String login(Model model) {
-	    String clientId = "e8CJrIznuqNhTW0G6YzE";//애플리케이션 클라이언트 아이디값";
+	    String clientId = "";//애플리케이션 클라이언트 아이디값";
 	    String redirectURI;
 		try {
 			redirectURI = URLEncoder.encode("http://localhost:8080/naver", "UTF-8");
@@ -115,8 +115,8 @@ public class TestController {
 	
 	@RequestMapping("/naver")
 	public String navercallback(HttpServletRequest request) {
-	    String clientId = "e8CJrIznuqNhTW0G6YzE";//애플리케이션 클라이언트 아이디값";
-	    String clientSecret = "O6VcaKudBn";//애플리케이션 클라이언트 시크릿값";
+	    String clientId = "";//애플리케이션 클라이언트 아이디값";
+	    String clientSecret = "";//애플리케이션 클라이언트 시크릿값";
 	    String code = request.getParameter("code");
 	    String state = request.getParameter("state");
 	    String redirectURI;
@@ -162,9 +162,6 @@ public class TestController {
 	        	sb.append(str[1].charAt(i));
 	        }
 	        String token = sb.toString();
-	        // ----
-	        
-	        
 	        // profile
 	        String header = "Bearer " + token; // Bearer 다음에 공백 추가
             String profileURL = "https://openapi.naver.com/v1/nid/me";
@@ -195,5 +192,4 @@ public class TestController {
 		}
 		return "/home";
 	}
-
 }
