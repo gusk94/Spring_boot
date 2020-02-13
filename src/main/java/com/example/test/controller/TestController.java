@@ -9,12 +9,16 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -27,9 +31,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.client.RestTemplate;
 
+import com.example.test.service.FileUploadDownloadService;
+
 @Controller
 public class TestController {
-	
 	@Value("${security.oauth2.client.clientId}")
 	String clientId;
 	
@@ -38,27 +43,7 @@ public class TestController {
 	
 	@Value("${security.oauth2.client.preEstablishedRedirectUri}")
 	String redirectURI;
-	
-	@RequestMapping("/")
-	public String login(Model model) {
-	    String clientId = "";//애플리케이션 클라이언트 아이디값";
-	    String redirectURI;
-		try {
-			redirectURI = URLEncoder.encode("http://localhost:8080/naver", "UTF-8");
-		    SecureRandom random = new SecureRandom();
-		    String state = new BigInteger(130, random).toString();
-		    String apiURL = "https://nid.naver.com/oauth2.0/authorize?response_type=code";
-		    apiURL += "&client_id=" + clientId;
-		    apiURL += "&redirect_uri=" + redirectURI;
-		    apiURL += "&state=" + state;
-		    model.addAttribute("apiURL", apiURL);
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return "/index";
-	}
-	
+
 	@RequestMapping("/google")
 	public String callback(HttpServletRequest request, HttpServletResponse response) {
 		String code = request.getParameter("code");
@@ -82,9 +67,12 @@ public class TestController {
 		String[] tokens = ((String)bodys.get("id_token")).split("\\.");
 
         try {
+        	JSONObject jsonObj = new JSONObject();
+        	JSONParser parser = new JSONParser();
+        	System.out.println("");
+        	
         	// 디코딩
         	String tmp = (new String(Base64.decodeBase64(tokens[1]), "utf-8"));
-	        
 	        // 구분자로 찢기
 			String[] str = tmp.split(",|:");
 			
@@ -105,10 +93,30 @@ public class TestController {
 		return "/home";
 	}
 	
+	@RequestMapping("/")
+	public String login(Model model) {
+	    String clientId = "e8CJrIznuqNhTW0G6YzE";//애플리케이션 클라이언트 아이디값";
+	    String redirectURI;
+		try {
+			redirectURI = URLEncoder.encode("http://localhost:8080/naver", "UTF-8");
+		    SecureRandom random = new SecureRandom();
+		    String state = new BigInteger(130, random).toString();
+		    String apiURL = "https://nid.naver.com/oauth2.0/authorize?response_type=code";
+		    apiURL += "&client_id=" + clientId;
+		    apiURL += "&redirect_uri=" + redirectURI;
+		    apiURL += "&state=" + state;
+		    model.addAttribute("apiURL", apiURL);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "/index";
+	}
+	
 	@RequestMapping("/naver")
 	public String navercallback(HttpServletRequest request) {
-	    String clientId = "";//애플리케이션 클라이언트 아이디값";
-	    String clientSecret = "";//애플리케이션 클라이언트 시크릿값";
+	    String clientId = "e8CJrIznuqNhTW0G6YzE";//애플리케이션 클라이언트 아이디값";
+	    String clientSecret = "O6VcaKudBn";//애플리케이션 클라이언트 시크릿값";
 	    String code = request.getParameter("code");
 	    String state = request.getParameter("state");
 	    String redirectURI;
@@ -140,9 +148,13 @@ public class TestController {
 		        res.append(inputLine);
 		      }
 		      br.close();
-	        
 	        // ----
-	        String temp = res.toString();
+		    System.out.println("res: " + res.toString());
+		    System.out.println("inputLine: " + inputLine);
+		    System.out.println("apiURL: " + apiURL);
+		    Map<String, String> api = new HashMap<>();
+		    
+		    String temp = res.toString();
 	        String[] str = temp.split(":|,");
 	        
 	        StringBuilder sb = new StringBuilder();
@@ -173,7 +185,7 @@ public class TestController {
                 response.append(profileinputLine);
             }
             profilebr.close();
-            System.out.println(response.toString());
+            System.out.println("response: " + response.toString());
 		    } catch (Exception e) {
 		      System.out.println(e);
 		    }

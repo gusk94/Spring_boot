@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+	
+
+<mapper namespace="com.beer.model.dao.SNSDAO" >
+	<select id="search" parameterType="int" resultType="sns">
+		select *
+		from SNS
+		where articleId=#{articleId}
+	</select>
+	
+	<select id="allsns" resultType="sns">
+		select * from SNS
+	</select>
+	
+	<select id="countallsns" resultType="int">
+		select count(*) from SNS
+	</select>
+	
+	<select id="snsByTime" resultType="sns">
+		select * from SNS ORDER BY date DESC
+	</select>
+	
+	<select id="searchByFollow" parameterType="string" resultType="sns">
+		select *
+		from SNS
+		where userId in (
+			select followerId
+			from FOLLOW
+			where followingId=#{userId}
+		)
+		ORDER BY date DESC
+	</select>
+	
+	<select id="countByFollow" parameterType="string" resultType="int">
+		select count(*)
+		from SNS
+		where userId in (
+			select followerId
+			from FOLLOW
+			where followingId=#{userId}
+		)
+		ORDER BY date DESC
+	</select>
+	
+	<select id="searchByNickname" parameterType="string" resultType="sns">
+		select * from SNS where userId in (select userId from USER where nickname like concat("%", #{nickname}, "%"))
+		ORDER BY date DESC;
+	</select>
+	
+	<select id="countByNickname" parameterType="string" resultType="int">
+		select count(*) from SNS where userId in (select userId from USER where nickname like concat("%", #{nickname}, "%"))
+		ORDER BY date DESC;
+	</select>
+	
+	<select id="searchByContents" parameterType="string" resultType="sns">
+		select *
+		from SNS
+		where contents like upper(concat('%',#{contents},'%')) ORDER BY date DESC
+	</select>
+	
+	<select id="countByContents" parameterType="string" resultType="int">
+		select count(*)
+		from SNS
+		where contents like upper(concat('%',#{contents},'%')) ORDER BY date DESC
+	</select>
+	
+	<insert id="insert" parameterType="sns">
+		insert into SNS(articleId, userId, date, picture, contents)
+		values(
+			#{articleId:INTEGER},
+			#{userId:VARCHAR},
+			now(),
+			#{picture:VARCHAR},
+			#{contents:VARCHAR}
+		)
+	</insert>
+	
+	<update id="update" parameterType="sns">
+		update SNS set
+			picture=#{picture},
+			contents=#{contents:VARCHAR}
+		where articleId=#{articleId:INTEGER}
+	</update>
+	
+	<delete id="delete" parameterType="int">
+		delete from SNS
+		where articleId=#{articleId}
+	</delete>
+	
+	<select id="searchByUserId" parameterType="string" resultType="sns">
+		select * from SNS where userId = #{userId} ORDER BY date DESC
+	</select>
+</mapper>

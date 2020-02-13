@@ -26,6 +26,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 	        .permitAll()
 	      .anyRequest()
 	        .authenticated();
+		http.cors().and().csrf().disable();
     }
 
 	@Bean
