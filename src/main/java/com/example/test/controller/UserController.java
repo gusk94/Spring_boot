@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -37,6 +39,9 @@ public class UserController {
 
 	@Autowired
 	PasswordEncoder passwordEncoder;
+	
+	@Autowired
+    public JavaMailSender emailSender;
 
 	@ExceptionHandler
 	public ResponseEntity<Map<String, Object>>handler(Exception e){ 
@@ -77,6 +82,19 @@ public class UserController {
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			return null;
 		}
+	}
+	
+	@PostMapping("/user/email")
+	@ApiOperation("user 이메일 인증")
+	public ResponseEntity<Map<String, Object>> checkEmail(@RequestBody String email){ 
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("name@gmail.com");
+        message.setTo(email);
+        message.setSubject("hi");
+        message.setText("success sending email!");
+        emailSender.send(message);
+		
+		return handleSuccess("등록 완료");
 	}
 
 	@PostMapping("/user")
