@@ -14,6 +14,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONObject;
@@ -42,6 +43,8 @@ public class TestController {
 	
 	@Value("${security.oauth2.client.preEstablishedRedirectUri}")
 	String redirectURI;
+	
+	String app = "";
 
 	@RequestMapping("/google")
 	public String callback(HttpServletRequest request, HttpServletResponse response) {
@@ -206,7 +209,7 @@ public class TestController {
 		// access_token
 		HttpHeaders headers = new HttpHeaders();
 		RestTemplate restTemplate = new RestTemplate();
-		headers.add("Content-Tyep", "application/x-www-form-urlencoded;charset=utf-8");
+		headers.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
 		
 		MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
 		parameters.add("grant_type", "authorization_code");
@@ -238,5 +241,119 @@ public class TestController {
 		String nickname = (String) pro.get("nickname");
 		String picture = (String) pro.get("thumbnail_image_url");
 		return "/home";
+	}
+	
+	@RequestMapping("/kakaopay")
+	public String kakaopay(HttpServletRequest request) throws Exception{		
+		String cid = "TC0ONETIME";
+		String partner_order_id = "1";
+		String partner_user_id = "test";
+		String item_name = "test";
+		int quantity = 10;
+		int total_amount = 450000;
+		int tax_free_amount = 50000;
+		String approval_url = "http://localhost:8080/success";
+		String cancel_url = "http://localhost:8080/cancel";
+		String fail_url	= "http://localhost:8080/fail";
+		
+		// 결제 준비
+		HttpHeaders headers = new HttpHeaders();
+		RestTemplate restTemplate = new RestTemplate();
+		headers.add("Authorization", "KakaoAK " + app);
+		headers.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+		
+		MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
+		parameters.add("cid", cid);
+		parameters.add("partner_order_id", partner_order_id);
+		parameters.add("partner_user_id", partner_user_id);
+		parameters.add("item_name", item_name);
+		parameters.add("quantity", quantity);
+		parameters.add("total_amount", total_amount);
+		parameters.add("tax_free_amount", tax_free_amount);
+		parameters.add("approval_url", approval_url);
+		parameters.add("cancel_url", cancel_url);
+		parameters.add("fail_url", fail_url);
+		
+		
+		HttpEntity<MultiValueMap<String, Object>> rest_request = new HttpEntity<>(parameters, headers);
+		URI uri = URI.create("https://kapi.kakao.com/v1/payment/ready");
+		
+		ResponseEntity<Map> rest_response;
+		rest_response = restTemplate.postForEntity(uri, rest_request, Map.class);
+		Map body = rest_response.getBody();
+		
+		// session
+		HttpSession session = request.getSession();
+		String tid = (String) body.get("tid");
+		session.setAttribute("tid", tid);
+		return "redirect:"+(String) body.get("next_redirect_pc_url");
+	}
+	
+	@RequestMapping("/success")
+	public String successpayment(HttpServletRequest request) throws Exception{
+		HttpSession session = request.getSession();
+		String tid = (String) session.getAttribute("tid");
+		String cid = "TC0ONETIME";
+		String partner_order_id = "1";
+		String partner_user_id = "test";
+		String pg_token = request.getParameter("pg_token");
+		// 결제 승인
+		HttpHeaders payheaders = new HttpHeaders();
+		RestTemplate payrestTemplate = new RestTemplate();
+		payheaders.add("Authorization", "KakaoAK " + app);
+		payheaders.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+		
+		MultiValueMap<String, Object> payparameters = new LinkedMultiValueMap<>();
+		payparameters.add("cid", cid);
+		payparameters.add("tid", tid);
+		payparameters.add("partner_order_id", partner_order_id);
+		payparameters.add("partner_user_id", partner_user_id);
+		payparameters.add("pg_token", pg_token);
+		
+		HttpEntity<MultiValueMap<String, Object>> pay_request = new HttpEntity<>(payparameters, payheaders);
+		URI payuri = URI.create("https://kapi.kakao.com/v1/payment/approve");
+		
+		ResponseEntity<Map> pay_response;
+		pay_response = payrestTemplate.postForEntity(payuri, pay_request, Map.class);
+		Map paybody = pay_response.getBody();
+		System.out.println(paybody);
+		return "/success";
+	}
+	
+	@RequestMapping("/cancel")
+	public String canclepayment(HttpServletRequest request) {
+		HttpSession session = request.getSession();
+		String tid = (String) session.getAttribute("tid");
+		String cid = "TC0ONETIME";
+		int cancel_amount = 450000;
+		int cancel_tax_free_amount = 50000;
+		// 결제 취소
+		HttpHeaders payheaders = new HttpHeaders();
+		RestTemplate payrestTemplate = new RestTemplate();
+		payheaders.add("Authorization", "KakaoAK " + app);
+		payheaders.add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
+		
+		MultiValueMap<String, Object> payparameters = new LinkedMultiValueMap<>();
+		payparameters.add("cid", cid);
+		payparameters.add("tid", tid);
+		payparameters.add("cancel_amount", cancel_amount);
+		payparameters.add("cancel_tax_free_amount", cancel_tax_free_amount);
+		
+		HttpEntity<MultiValueMap<String, Object>> pay_request = new HttpEntity<>(payparameters, payheaders);
+		URI payuri = URI.create("https://kapi.kakao.com/v1/payment/cancel");
+		
+		ResponseEntity<Map> pay_response;
+		pay_response = payrestTemplate.postForEntity(payuri, pay_request, Map.class);
+		Map paybody = pay_response.getBody();
+		String status = (String) paybody.get("status");
+		if (status.equals("CANCEL_PAYMENT")) {
+			System.out.println("결제 취소");
+		}
+		return "/cancel";
+	}
+	
+	@RequestMapping("/fail")
+	public String failpayment() {
+		return "/fail";
 	}
 }
