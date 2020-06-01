@@ -18,7 +18,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -97,7 +96,10 @@ public class TestController {
 	public String login(Model model) {
 	    String clientId = "";//애플리케이션 클라이언트 아이디값";
 	    String redirectURI;
+	    String kakaoclientId = "";
+	    String kakaoredirectURI;
 		try {
+			// naver
 			redirectURI = URLEncoder.encode("http://localhost:8080/naver", "UTF-8");
 		    SecureRandom random = new SecureRandom();
 		    String state = new BigInteger(130, random).toString();
@@ -106,6 +108,12 @@ public class TestController {
 		    apiURL += "&redirect_uri=" + redirectURI;
 		    apiURL += "&state=" + state;
 		    model.addAttribute("apiURL", apiURL);
+		    
+		    // kakao
+		    kakaoredirectURI = URLEncoder.encode("http://localhost:8080/kakao", "UTF-8");
+		    String kakaoURL = "https://kauth.kakao.com/oauth/authorize?";
+		    kakaoURL += "client_id=" + kakaoclientId + "&redirect_uri=" + kakaoredirectURI + "&response_type=code";
+		    model.addAttribute("kakaoURL", kakaoURL);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -148,10 +156,6 @@ public class TestController {
 		        res.append(inputLine);
 		      }
 		      br.close();
-	        // ----
-		    System.out.println("res: " + res.toString());
-		    System.out.println("inputLine: " + inputLine);
-		    System.out.println("apiURL: " + apiURL);
 		    Map<String, String> api = new HashMap<>();
 		    
 		    String temp = res.toString();
@@ -190,6 +194,49 @@ public class TestController {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		return "/home";
+	}
+	
+	@RequestMapping("/kakao")
+	public String kakaocallback(HttpServletRequest request) throws Exception{
+		String redirectURI = "http://localhost:8080/kakao";
+	    String kakaoclientId = "";
+		String code = request.getParameter("code");
+		
+		// access_token
+		HttpHeaders headers = new HttpHeaders();
+		RestTemplate restTemplate = new RestTemplate();
+		headers.add("Content-Tyep", "application/x-www-form-urlencoded;charset=utf-8");
+		
+		MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+		parameters.add("grant_type", "authorization_code");
+		parameters.add("client_id", kakaoclientId);
+		parameters.add("redirect_uri", redirectURI);
+		parameters.add("code", code);
+		
+		HttpEntity<MultiValueMap<String, String>> rest_request = new HttpEntity<>(parameters, headers);
+		URI uri = URI.create("https://kauth.kakao.com/oauth/token");
+		
+		ResponseEntity<Map> rest_response;
+		rest_response = restTemplate.postForEntity(uri, rest_request, Map.class);
+		Map bodys = rest_response.getBody();
+		
+		// profile
+		String access_token = (String) bodys.get("access_token");
+		HttpHeaders profileheaders = new HttpHeaders();
+		RestTemplate profileTemplate = new RestTemplate();
+		profileheaders.add("Authorization", "Bearer " + access_token);
+		HttpEntity<String> profile_request = new HttpEntity<>(profileheaders);
+		URI profileuri = URI.create("https://kapi.kakao.com/v2/user/me");
+		
+		ResponseEntity<Map> profile;
+		profile = profileTemplate.postForEntity(profileuri, profile_request, Map.class);
+		Map profile_body = profile.getBody();
+		Map account = (Map) profile_body.get("kakao_account");
+		String email = (String) account.get("email");
+		Map pro = (Map) account.get("profile");
+		String nickname = (String) pro.get("nickname");
+		String picture = (String) pro.get("thumbnail_image_url");
 		return "/home";
 	}
 }
